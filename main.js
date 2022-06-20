@@ -17,9 +17,11 @@ let playerValueElem = document.querySelector('.player-value')
 let statusElem = document.querySelector('.status')
 let playerValue = 0
 let dealerValue = 0
+let gameInProgress = false
 
 async function deal() {
     reset()
+    gameInProgress = true
 
     await fetch('https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=1')
     .then(res => res.json())
@@ -87,7 +89,6 @@ function hit()
             if (playerValue > 21) {
                 statusElem.innerText = 'Player Busted! Dealer wins!'
                 endGame()
-                return;
             }
 
         }).catch(err => {
@@ -114,14 +115,14 @@ async function stand() {
                 if (dealerValue > 21) {
                     statusElem.innerText = 'Dealer Busted! Player wins!'
                     endGame()
-                    return;
                 }
 
             }).catch(err => {
                 console.log(`Error: ${err}`)
             });
     }
-    calculateScores()``
+    if (gameInProgress)
+        calculateScores()
 }
 
 function calculateScores() {
@@ -149,6 +150,7 @@ function reset() {
 }
 
 function endGame() {
+    gameInProgress = false
     dealButton.removeAttribute('disabled')
     hitButton.setAttribute('disabled', '')
     standButton.setAttribute('disabled', '')
