@@ -8,20 +8,31 @@
     <title>Blackjack</title>
 </head>
 <body>
-    <section class="container">
+
+    <header>
+        <div class="container nav">
+            <h1>Blackjack</h1>
+            <div>
+                <a href="https://rivereh.github.io/">Home</a>
+                <a href="https://rivereh.github.io/projects.html">Projects</a>
+            </div>
+        </div>
+    </header>
+
+    <section class="container game">
+        <h3 class="dealer-text">Dealer's Cards - Value: <span class="dealer-value">0</span></h3>
+        <section class="dealers-cards"></section>
+    
+        <h3 class="player-text">Player's Cards - Value: <span class="player-value">0</span></h3>
+        <section class="players-cards"></section>
+    
+        <h3 class="status">Press deal to start</h3>
+
         <section class="buttons">
             <button id="deal">Deal</button>
             <button id="hit">Hit</button>
             <button id="stand">Stand</button>
         </section>
-        
-        <h3>Dealer's Cards - Value: <span class="dealer-value">0</span></h3>
-        <section class="dealers-cards"></section>
-    
-        <h3>Player's Cards - Value: <span class="player-value">0</span></h3>
-        <section class="players-cards"></section>
-    
-        <h3 class="status"></h3>
     </section>
     <script src="main.js"></script>
 </body>

@@ -14,6 +14,8 @@ let dealerCardHolder = document.querySelector('.dealers-cards')
 let playerCardHolder = document.querySelector('.players-cards')
 let dealerValueElem = document.querySelector('.dealer-value')
 let playerValueElem = document.querySelector('.player-value')
+let dealerTextElem = document.querySelector('.dealer-text')
+let playerTextElem = document.querySelector('.player-text')
 let statusElem = document.querySelector('.status')
 let playerValue = 0
 let dealerValue = 0
@@ -136,6 +138,8 @@ function calculateScores() {
 }
 
 function reset() {
+    dealerTextElem.style.display = 'block'
+    playerTextElem.style.display = 'block'
     dealerValue = 0
     playerValue = 0
     dealerValueElem.innerText = 0
