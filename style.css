@@ -16,9 +16,13 @@
 
 .nav a {
     font-size: 1.3rem;
-    margin-right: 1rem;
     text-decoration: none;
     color: inherit;
+}
+
+.nav div {
+    display: flex;
+    gap: 10px;
 }
 
 .nav a:hover {
@@ -83,6 +87,46 @@ button:hover {
 }
 
 img {
-    width: 150px;
+    /* width: 150px; */
+    height: 150px;
     margin: 10px;
+}
+
+@media(max-width: 600px) {
+    img {
+        height: 100px;
+    }
+}
+
+.disclaimer {
+    text-align: center;
+    height: 50px;
+}
+
+@media(max-width: 480px) {
+    .nav {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .nav div {
+        margin-top: 0.3rem;
+        flex-direction: column;
+    }
+
+    img {
+        height: 80px;
+    }
+
+    .dealer-score, .player-score {
+        display: none;
+    }
+}
+
+@media(max-width: 300px) {
+    .buttons {
+        flex-direction: column;
+        align-items: center;
+    }
 }
