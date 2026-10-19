@@ -64,9 +64,17 @@ body::before {
 }
 
 .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     font-size: 1.35rem;
     font-weight: 800;
     letter-spacing: -0.02em;
+}
+
+.logo-icon {
+    width: 32px;
+    height: 32px;
 }
 
 .logo-suit {

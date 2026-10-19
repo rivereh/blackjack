@@ -87,7 +87,8 @@ class Deck:
     def __init__(self):
         # suit and ranks used in card creation
         self.suits = ['S', 'H', 'D', 'C']
-        self.ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
+        self.ranks = ['A', '2', '3', '4', '5', '6',
+                      '7', '8', '9', '10', 'J', 'Q', 'K']
 
         # initialize the deck's card array
         self.cards = []
@@ -153,8 +154,10 @@ class Blackjack:
         # create pull-down for options with Rules, Clear Scores, and Quit
         option_menu = Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Options", menu=option_menu)
-        option_menu.add_command(label="Blackjack Rules", command=self.show_rules)
-        option_menu.add_command(label="Clear Scores", command=self.clear_scores)
+        option_menu.add_command(label="Blackjack Rules",
+                                command=self.show_rules)
+        option_menu.add_command(label="Clear Scores",
+                                command=self.clear_scores)
         option_menu.add_separator()
         option_menu.add_command(label="Quit", command=self.window.destroy)
 
@@ -162,14 +165,17 @@ class Blackjack:
         self.button_frame = Frame(self.window)
         self.button_frame.pack()
 
-        bt_deal = Button(self.button_frame, width = 20, height = 10, text = "Deal", command = self.deal)
-        bt_hit = Button(self.button_frame, width = 20, height = 10, text = "Hit", command = self.hit)
-        bt_stand = Button(self.button_frame, width = 20, height = 10, text = "Stand", command = self.stand)
+        bt_deal = Button(self.button_frame, width=20,
+                         height=2, text="Deal", command=self.deal)
+        bt_hit = Button(self.button_frame, width=20, height=2,
+                        text="Hit", command=self.hit)
+        bt_stand = Button(self.button_frame, width=20,
+                          height=2, text="Stand", command=self.stand)
 
         # aligning buttons in a row
-        bt_deal.grid(row = 1, column = 1, pady = 10)
-        bt_hit.grid(row = 1, column = 2, pady = 10)
-        bt_stand.grid(row = 1, column = 3, pady = 10)
+        bt_deal.grid(row=1, column=1, pady=2)
+        bt_hit.grid(row=1, column=2, pady=2)
+        bt_stand.grid(row=1, column=3, pady=2)
 
         # frame for the dealer and players cards and the label
         # and image lists, used in holding which cards should be
@@ -185,34 +191,34 @@ class Blackjack:
         self.player_image_list = []
 
         # game status GUI
-        self.game_status = Label(self.window, text = "Press Deal to start!")
+        self.game_status = Label(self.window, text="Press Deal to start!")
         self.game_status.pack()
 
         # frame for dealer / player status
         self.status_frame = Frame(self.window)
-        self.status_frame.pack(side = LEFT)
+        self.status_frame.pack(side=LEFT)
 
         # dealer status GUI
-        self.dealer_status = Label(self.status_frame, text = "")
+        self.dealer_status = Label(self.status_frame, text="")
         self.dealer_status.pack()
 
         # player status GUI
-        self.player_status = Label(self.status_frame, text = "")
+        self.player_status = Label(self.status_frame, text="")
         self.player_status.pack()
 
-        # frame for dealer / player / tie score
+        # frame for wins / losses / pushes
         self.score_frame = Frame(self.window)
         self.score_frame.pack(side=RIGHT)
 
-        # dealer score GUI
-        self.dealer_score_label = Label(self.score_frame)
-        self.dealer_score_label.pack()
-
-        # player score GUI
+        # wins (player score) GUI
         self.player_score_label = Label(self.score_frame)
         self.player_score_label.pack()
 
-        # tie score GUI
+        # losses (dealer score) GUI
+        self.dealer_score_label = Label(self.score_frame)
+        self.dealer_score_label.pack()
+
+        # pushes (tie score) GUI
         self.tie_score_label = Label(self.score_frame)
         self.tie_score_label.pack()
 
@@ -224,20 +230,19 @@ class Blackjack:
         help_window.title("Rules")
 
         label = Label(help_window, text="\t\t\tGoal:\n\n"
-                                      "Beat the dealer by gathering a hand that's as close to 21"
-                      , justify=LEFT, pady=15)
+                      "Beat the dealer by gathering a hand that's as close to 21", justify=LEFT, pady=15)
         label2 = Label(help_window, text="\t\t\t               Rules:\n\n"
-                                       "1. Aces are worth 11, unless that would put the hand\n"
-                                       "   over 21, then they are worth 1\n\n"
-                                       "2. Face cards (King, Queen, Jack) are worth 10 points\n\n"
-                                       "3. A player will bust when their hand exceeds 21\n\n"
-                                       "4. The Dealer will deal two cards to you and two to themselves,\n"
-                                       "   with one of the dealer's cards face down\n\n"
-                                       "5. 21 with your first two cards is a Blackjack and wins right away\n\n"
-                                       "6. The player can hit to add cards to their hand\n\n"
-                                       "7. The player can stand if they are content with their hand\n\n"
-                                       "8. The Dealer draws until their hand is at least 17\n\n"
-                                       "9. The player can deal to start a new game", justify=LEFT, padx=50, pady=20)
+                       "1. Aces are worth 11, unless that would put the hand\n"
+                       "   over 21, then they are worth 1\n\n"
+                       "2. Face cards (King, Queen, Jack) are worth 10 points\n\n"
+                       "3. A player will bust when their hand exceeds 21\n\n"
+                       "4. The Dealer will deal two cards to you and two to themselves,\n"
+                       "   with one of the dealer's cards face down\n\n"
+                       "5. 21 with your first two cards is a Blackjack and wins right away\n\n"
+                       "6. The player can hit to add cards to their hand\n\n"
+                       "7. The player can stand if they are content with their hand\n\n"
+                       "8. The Dealer draws until their hand is at least 17\n\n"
+                       "9. The player can deal to start a new game", justify=LEFT, padx=50, pady=20)
 
         label.pack()  # Place the object of the game label in the window
         label2.pack()  # Place the rules label in the window
@@ -262,7 +267,8 @@ class Blackjack:
     def save_scores(self):
         try:
             with open(self.scores_file, 'wb') as score_pickle:
-                pickle.dump([self.dealer_score, self.player_score, self.tie_score], score_pickle)
+                pickle.dump([self.dealer_score, self.player_score,
+                            self.tie_score], score_pickle)
         except OSError:
             # scores just won't be saved
             pass
@@ -312,7 +318,8 @@ class Blackjack:
     # turn the dealer's face down card over
     def reveal_hole_card(self):
         if self.hole_hidden:
-            image = PhotoImage(file="cards/" + str(self.dealer_hand.cards[1].get_count()) + ".gif")
+            image = PhotoImage(
+                file="cards/" + str(self.dealer_hand.cards[1].get_count()) + ".gif")
             self.dealer_image_list[1] = image
             self.dealer_label_list[1]["image"] = image
             self.hole_hidden = False
@@ -343,7 +350,8 @@ class Blackjack:
 
         # draw the cards to the screen, the dealer's second card is dealt face down
         for card in self.player_hand.cards:
-            self.show_card(self.player_frame, self.player_label_list, self.player_image_list, card)
+            self.show_card(self.player_frame, self.player_label_list,
+                           self.player_image_list, card)
         self.show_card(self.dealer_frame, self.dealer_label_list, self.dealer_image_list,
                        self.dealer_hand.cards[0])
         self.show_card(self.dealer_frame, self.dealer_label_list, self.dealer_image_list,
@@ -376,7 +384,8 @@ class Blackjack:
             # add a new card to the player's hand and draw it to the screen
             card = self.deck.deal_card()
             self.player_hand.add_card(card)
-            self.show_card(self.player_frame, self.player_label_list, self.player_image_list, card)
+            self.show_card(self.player_frame, self.player_label_list,
+                           self.player_image_list, card)
 
             # update the score UI for the dealer and player
             self.update_values()
@@ -400,17 +409,21 @@ class Blackjack:
             shown_hand.add_card(self.dealer_hand.cards[0])
         else:
             shown_hand = self.dealer_hand
-        self.dealer_status["text"] = "Dealer total: " + str(shown_hand.get_value())
-        self.player_status["text"] = "Player total: " + str(self.player_hand.get_value())
+        self.dealer_status["text"] = "Dealer total: " + \
+            str(shown_hand.get_value())
+        self.player_status["text"] = "Player total: " + \
+            str(self.player_hand.get_value())
         if SHOW_DEBUG:
-            print("\nDealer:", self.dealer_hand.get_hand(), "total:", self.dealer_hand.get_value())
-            print("Player:", self.player_hand.get_hand(), "total:", self.player_hand.get_value())
+            print("\nDealer:", self.dealer_hand.get_hand(),
+                  "total:", self.dealer_hand.get_value())
+            print("Player:", self.player_hand.get_hand(),
+                  "total:", self.player_hand.get_value())
 
     # function used in updating the dealer / player / tie score UI
     def update_score_labels(self):
-        self.dealer_score_label["text"] = "Dealer score: %d" % self.dealer_score
-        self.player_score_label["text"] = "Player score: %d" % self.player_score
-        self.tie_score_label["text"] = "Ties: %d" % self.tie_score
+        self.player_score_label["text"] = "Wins: %d" % self.player_score
+        self.dealer_score_label["text"] = "Losses: %d" % self.dealer_score
+        self.tie_score_label["text"] = "Pushes: %d" % self.tie_score
 
     # function used in updating the game status and score UI
     def update_game_status(self, color, text):
@@ -421,7 +434,8 @@ class Blackjack:
 
         if SHOW_DEBUG:
             print("\n%s" % text)
-            print("\nDealer:", self.dealer_score, "\nPlayer:", self.player_score, "\nTies:", self.tie_score)
+            print("\nDealer:", self.dealer_score, "\nPlayer:",
+                  self.player_score, "\nTies:", self.tie_score)
 
     # end the game, giving a point to the winner ("player", "dealer", or "tie")
     def finish(self, winner, text):
@@ -448,7 +462,8 @@ class Blackjack:
             while self.dealer_hand.get_value() < 17:
                 card = self.deck.deal_card()
                 self.dealer_hand.add_card(card)
-                self.show_card(self.dealer_frame, self.dealer_label_list, self.dealer_image_list, card)
+                self.show_card(
+                    self.dealer_frame, self.dealer_label_list, self.dealer_image_list, card)
 
             # update the score values
             self.update_values()
