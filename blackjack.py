@@ -10,7 +10,6 @@
 from tkinter import *
 import random
 import pickle
-import os
 
 # for developers only -- shows a console version of the game used for debugging things
 SHOW_DEBUG = False
@@ -25,8 +24,6 @@ class Card:
         self.suit = suit
         self.rank = rank
         self.count = count
-        self.ace_value = 1
-        self.ace_set = False
 
     # return cards suit and rank. ex. ('S5' for five of spades)
     def get_card(self):
@@ -40,47 +37,22 @@ class Card:
     def get_count(self):
         return self.count
 
-    # sets the card's ace value, either 1 or 11
-    def set_ace_value(self, value):
-        self.ace_value = value
-
-    # returns the value that has been set for the card, if it
-    # is an ace, automatically depening on the hand's total score
-    # the cards value will either be 1 or 11
-    def get_ace_value(self):
-        return self.ace_value
-
-    # returns whether the card has been checked as an ace card
-    def get_ace_set(self):
-        return self.ace_set
-
-    # sets the card, if it contains an ace, as checked, used in fixing
-    # a bug where aces that were initally added to a hand as 11 would
-    # change to 1 if the hand's score got above 21
-    def set_ace_set(self):
-        self.ace_set = True
-
 
 # class for hands used in keeping track of dealer and player's
 # set of cards
 class Hand:
     def __init__(self):
         # assign values to each rank, used in assigning a value to a card
-        self.values = {'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 10,
+        # aces start at 11 and are dropped to 1 in get_value when needed
+        self.values = {'A': 11, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 10,
                        'Q': 10, 'K': 10}
-        
+
         # initialize empty cards array, used in storing hand's cards
         self.cards = []
 
     # function to get the current cards in the hand
     def get_hand(self):
-        current_hand = ""
-        for card in self.cards:
-            current_hand += card.get_card()
-            if card != self.cards[-1]:
-                current_hand += ", "
-
-        return current_hand
+        return ", ".join(card.get_card() for card in self.cards)
 
     # adds card to end of hand
     def add_card(self, card):
@@ -89,23 +61,25 @@ class Hand:
     # function to find the value of the hand
     def get_value(self):
         value = 0
+        soft_aces = 0
         # compare the rank of each card with the values variable and add it
-        # to the hand's value
+        # to the hand's value, counting how many aces are worth 11
         for card in self.cards:
             rank = card.get_rank()
             value += self.values[rank]
-
-            # check if the card is an ace, if so and if the player is under 11 in score and
-            # the current card has not been checked before then add 11 to the value
-            # otherwise add 1
             if rank == 'A':
-                value -= 1
-                if value < 11 and not card.get_ace_set():
-                    card.set_ace_value(11)
-                    card.set_ace_set()
-                value += card.get_ace_value()
+                soft_aces += 1
+
+        # while the hand is over 21, drop aces from 11 to 1 one at a time
+        while value > 21 and soft_aces > 0:
+            value -= 10
+            soft_aces -= 1
 
         return value
+
+    # a blackjack is 21 made with the first two cards
+    def is_blackjack(self):
+        return len(self.cards) == 2 and self.get_value() == 21
 
 
 # class for handling a game's deck
@@ -149,39 +123,28 @@ class Deck:
 class Blackjack:
     def __init__(self):
         # initialize game variables
-        self.player_hand = 0
-        self.dealer_hand = 0
-        self.deck = 0
+        self.player_hand = Hand()
+        self.dealer_hand = Hand()
+        self.deck = Deck()
         self.player_score = 0
         self.dealer_score = 0
+        self.tie_score = 0
 
         self.in_game = False
-        self.safe_to_clear = False
 
-        # used with pickle in saving the dealer / player scores
+        # true while the dealer's second card is still face down
+        self.hole_hidden = False
+
+        # used with pickle in saving the dealer / player / tie scores
         self.scores_file = "scores.data"
-
-        # check if the scores.data file exists and if not, create an new one
-        if not os.path.exists(self.scores_file):
-            with open(self.scores_file, 'w'): pass
-
-        # check if the scores files is larger than 0 meaning it contains data,
-        # if so then set the scores saved inside the file to the dealer and
-        # players score
-        if os.path.getsize(self.scores_file) > 0:
-            score_pickle = open(self.scores_file, 'rb')
-            saved_scores = pickle.load(score_pickle)
-            self.dealer_score = saved_scores[0]
-            self.player_score = saved_scores[1]
-
-        # these are used in determining what card in the hand should be
-        # drawn to the screen
-        self.player_card_hit_count = 1
-        self.dealer_card_hit_count = 1
+        self.load_scores()
 
         # initialize the playing window
         self.window = Tk()
         self.window.title("Blackjack")
+
+        # image used for the dealer's face down card
+        self.card_back = PhotoImage(file="cards/b1fv.gif")
 
         # create menu bar
         menubar = Menu(self.window)
@@ -193,7 +156,7 @@ class Blackjack:
         option_menu.add_command(label="Blackjack Rules", command=self.show_rules)
         option_menu.add_command(label="Clear Scores", command=self.clear_scores)
         option_menu.add_separator()
-        option_menu.add_cascade(label="Quit", command=self.window.quit)
+        option_menu.add_command(label="Quit", command=self.window.destroy)
 
         # frame and buttons for the deal/hit/stand functions
         self.button_frame = Frame(self.window)
@@ -208,7 +171,7 @@ class Blackjack:
         bt_hit.grid(row = 1, column = 2, pady = 10)
         bt_stand.grid(row = 1, column = 3, pady = 10)
 
-        # frame for the dealer and players cards and the label 
+        # frame for the dealer and players cards and the label
         # and image lists, used in holding which cards should be
         # drawn to the screen
         self.dealer_frame = Frame(self.window)
@@ -216,7 +179,7 @@ class Blackjack:
         self.dealer_label_list = []
         self.dealer_image_list = []
 
-        self.player_frame = Frame(self.window) 
+        self.player_frame = Frame(self.window)
         self.player_frame.pack()
         self.player_label_list = []
         self.player_image_list = []
@@ -237,40 +200,72 @@ class Blackjack:
         self.player_status = Label(self.status_frame, text = "")
         self.player_status.pack()
 
-        # frame for dealer / player score
+        # frame for dealer / player / tie score
         self.score_frame = Frame(self.window)
         self.score_frame.pack(side=RIGHT)
 
         # dealer score GUI
-        self.dealer_score_label = Label(self.score_frame, text="Dealer score: %d" % self.dealer_score)
+        self.dealer_score_label = Label(self.score_frame)
         self.dealer_score_label.pack()
 
         # player score GUI
-        self.player_score_label = Label(self.score_frame, text="Player score: %d" % self.player_score)
+        self.player_score_label = Label(self.score_frame)
         self.player_score_label.pack()
 
-        self.window.mainloop()
+        # tie score GUI
+        self.tie_score_label = Label(self.score_frame)
+        self.tie_score_label.pack()
+
+        self.update_score_labels()
 
     # show the rules of Blackjack
     def show_rules(self):
-        help_window = Tk()  # Create a second window
+        help_window = Toplevel(self.window)  # Create a second window
         help_window.title("Rules")
 
         label = Label(help_window, text="\t\t\tGoal:\n\n"
                                       "Beat the dealer by gathering a hand that's as close to 21"
                       , justify=LEFT, pady=15)
         label2 = Label(help_window, text="\t\t\t               Rules:\n\n"
-                                       "1. Aces can be worth 1 or 11, if the hand's hand is under 10\n"
-                                       "   then 11 will be added to the hand, otherwise 1 will be added\n\n"
+                                       "1. Aces are worth 11, unless that would put the hand\n"
+                                       "   over 21, then they are worth 1\n\n"
                                        "2. Face cards (King, Queen, Jack) are worth 10 points\n\n"
                                        "3. A player will bust when their hand exceeds 21\n\n"
-                                       "4. The Dealer will deal two cards at the beginning that make up your hand\n\n"
-                                       "5. The player can hit to add cards to his hand\n\n"
-                                       "6. The player can stand if they are content with their hand\n\n"
-                                       "7. The player can deal to start a new game", justify=LEFT, padx=50, pady=20)
+                                       "4. The Dealer will deal two cards to you and two to themselves,\n"
+                                       "   with one of the dealer's cards face down\n\n"
+                                       "5. 21 with your first two cards is a Blackjack and wins right away\n\n"
+                                       "6. The player can hit to add cards to their hand\n\n"
+                                       "7. The player can stand if they are content with their hand\n\n"
+                                       "8. The Dealer draws until their hand is at least 17\n\n"
+                                       "9. The player can deal to start a new game", justify=LEFT, padx=50, pady=20)
 
         label.pack()  # Place the object of the game label in the window
         label2.pack()  # Place the rules label in the window
+
+    # load the saved dealer / player / tie scores from the scores.data file
+    def load_scores(self):
+        try:
+            with open(self.scores_file, 'rb') as score_pickle:
+                saved_scores = pickle.load(score_pickle)
+            self.dealer_score = int(saved_scores[0])
+            self.player_score = int(saved_scores[1])
+            # older score files only saved the dealer and player scores
+            if len(saved_scores) > 2:
+                self.tie_score = int(saved_scores[2])
+        except Exception:
+            # missing or corrupted scores file, start from zero
+            self.dealer_score = 0
+            self.player_score = 0
+            self.tie_score = 0
+
+    # save the dealer / player / tie scores in the scores.data file
+    def save_scores(self):
+        try:
+            with open(self.scores_file, 'wb') as score_pickle:
+                pickle.dump([self.dealer_score, self.player_score, self.tie_score], score_pickle)
+        except OSError:
+            # scores just won't be saved
+            pass
 
     # function to clear the cards from the canvas
     # and reset label text
@@ -280,40 +275,48 @@ class Blackjack:
         self.dealer_status["text"] = ""
         self.player_status["text"] = ""
 
-        # clears the player and dealers image/label list
-        # and goes through each element in the label list and
-        # forgets it's grid position and destroys it, otherwise
-        # problems with the UI will happen when the player deals
-        # a new deck
-        self.player_image_list.clear()
-        for i in range(0, len(self.player_hand.cards)):
-            self.player_label_list[i].grid_forget()
-            self.player_label_list[i].destroy()
+        # destroy each card label on the screen and clear the
+        # player and dealers image/label lists, otherwise problems
+        # with the UI will happen when the player deals a new deck
+        for label in self.player_label_list + self.dealer_label_list:
+            label.destroy()
         self.player_label_list.clear()
-
-        self.dealer_image_list.clear()
-        for i in range(0, len(self.dealer_hand.cards)):
-            self.dealer_label_list[i].grid_forget()
-            self.dealer_label_list[i].destroy()
+        self.player_image_list.clear()
         self.dealer_label_list.clear()
+        self.dealer_image_list.clear()
 
-        # reset the card hit counts, used in figuring out which
-        # card in a hand should be drawn to the screen
-        self.player_card_hit_count = 1
-        self.dealer_card_hit_count = 1
+        self.hole_hidden = False
 
     # function for the clear scores option in the menu bar
-    # resets dealer and player's scores and clears the
+    # resets dealer, player, and tie scores and clears the
     # scores.data file and GUI labels
     def clear_scores(self):
-        self.dealer_score_label["text"] = "Dealer score: 0"
-        self.player_score_label["text"] = "Player score: 0"
         self.dealer_score = 0
         self.player_score = 0
-        scores_to_save = [0, 0]
-        score_pickle = open(self.scores_file, "wb")
-        pickle.dump(scores_to_save, score_pickle)
-        score_pickle.close()
+        self.tie_score = 0
+        self.save_scores()
+        self.update_score_labels()
+
+    # draw a card to the screen, by using the cards "count" number we can find the
+    # appropriate image from the cards folder, face down cards use the card back image
+    def show_card(self, frame, label_list, image_list, card, face_down=False):
+        if face_down:
+            image = self.card_back
+        else:
+            image = PhotoImage(file="cards/" + str(card.get_count()) + ".gif")
+        image_list.append(image)
+        label = Label(frame, image=image)
+        label.pack(side=LEFT)
+        label_list.append(label)
+
+    # turn the dealer's face down card over
+    def reveal_hole_card(self):
+        if self.hole_hidden:
+            image = PhotoImage(file="cards/" + str(self.dealer_hand.cards[1].get_count()) + ".gif")
+            self.dealer_image_list[1] = image
+            self.dealer_label_list[1]["image"] = image
+            self.hole_hidden = False
+            self.update_values()
 
     # function for deal button which resets UI elements and creates a new
     # deck for the dealer and player
@@ -322,14 +325,8 @@ class Blackjack:
         # clear the intro status text after the player deals
         self.game_status["text"] = ""
 
-        # only allow the screen to clear after the first
-        # time dealing or else scary things happen
-        if self.safe_to_clear:
-            self.clear()
-
-        # set in_game to true which allows the user to
-        # active the hit and stand buttons
-        self.in_game = True
+        # clear the cards from the last game
+        self.clear()
 
         # create new deck and shuffle it
         self.deck = Deck()
@@ -344,134 +341,144 @@ class Blackjack:
             self.player_hand.add_card(self.deck.deal_card())
             self.dealer_hand.add_card(self.deck.deal_card())
 
-        # by using the cards "count" number we can find the appropriate image from the
-        # cards folder, then we add the images to the player's image list
-        # which is then looped through and added to the label list which is drawn onto the canvas
-        for i in range(len(self.dealer_hand.cards)):
-            self.dealer_image_list.append(PhotoImage(file="cards/" +
-                                                          str(self.dealer_hand.cards[i].get_count()) + ".gif"))
-            self.dealer_label_list.append(Label(self.dealer_frame, image=self.dealer_image_list[i]))
-            self.dealer_label_list[i].pack(side=LEFT)
+        # draw the cards to the screen, the dealer's second card is dealt face down
+        for card in self.player_hand.cards:
+            self.show_card(self.player_frame, self.player_label_list, self.player_image_list, card)
+        self.show_card(self.dealer_frame, self.dealer_label_list, self.dealer_image_list,
+                       self.dealer_hand.cards[0])
+        self.show_card(self.dealer_frame, self.dealer_label_list, self.dealer_image_list,
+                       self.dealer_hand.cards[1], face_down=True)
+        self.hole_hidden = True
 
-        for i in range(len(self.player_hand.cards)):
-            self.player_image_list.append(PhotoImage(file="cards/" +
-                                                          str(self.player_hand.cards[i].get_count()) + ".gif"))
-            self.player_label_list.append(Label(self.player_frame, image=self.player_image_list[i]))
-            self.player_label_list[i].pack(side=LEFT)
+        # set in_game to true which allows the user to
+        # active the hit and stand buttons
+        self.in_game = True
 
         # after the cards have been dealt, update the dealer and player values
         # to represent the newly added cards
         self.update_values()
 
-        # set safe to clear to true after the first deck is dealed which allows
-        # the clear function to reset the UI elements
-        self.safe_to_clear = True
+        # if either hand is a blackjack the game is over right away
+        player_blackjack = self.player_hand.is_blackjack()
+        dealer_blackjack = self.dealer_hand.is_blackjack()
+        if player_blackjack or dealer_blackjack:
+            self.reveal_hole_card()
+            if player_blackjack and dealer_blackjack:
+                self.finish("tie", "Both have Blackjack, it's a tie!")
+            elif player_blackjack:
+                self.finish("player", "Blackjack! Player wins!")
+            else:
+                self.finish("dealer", "Dealer has Blackjack, dealer wins!")
 
     # if the game is currently active then hit
     def hit(self):
         if self.in_game:
-            # if the player is under 21 then add a new card to their hand
-            if self.player_hand.get_value() <= 21:
-                self.player_hand.add_card(self.deck.deal_card())
-
-            # draw the newly added card to the screen
-            self.player_card_hit_count += 1
-            self.player_image_list.append(PhotoImage(file="cards/" + str(
-                self.player_hand.cards[self.player_card_hit_count].get_count()) + ".gif"))
-            self.player_label_list.append(
-                Label(self.player_frame, image=self.player_image_list[self.player_card_hit_count]))
-            self.player_label_list[self.player_card_hit_count].pack(side = LEFT)
+            # add a new card to the player's hand and draw it to the screen
+            card = self.deck.deal_card()
+            self.player_hand.add_card(card)
+            self.show_card(self.player_frame, self.player_label_list, self.player_image_list, card)
 
             # update the score UI for the dealer and player
             self.update_values()
 
             # check if the player busted which lets the dealer win
             if self.player_hand.get_value() > 21:
-                self.dealer_score += 1
-                self.update_game_status("red", "Player busted, dealer wins!")
-                self.in_game = False
+                self.reveal_hole_card()
+                self.finish("dealer", "Player busted, dealer wins!")
+            # the player can't do better than 21 so stand for them
+            elif self.player_hand.get_value() == 21:
+                self.stand()
         # if the game is not in play then prompt the user to deal a new deck to play
         else:
-            self.game_status["fg"] = "red"
-            self.game_status["text"] = "ERROR: Please deal a new deck to continue!"
-            if SHOW_DEBUG:
-                print("\nERROR: Please deal a new deck to continue!")
+            self.show_deal_error()
 
     # function used in updating the hand values and the UI representing it
     def update_values(self):
-        self.dealer_status["text"] = "Dealer total: " + str(self.dealer_hand.get_value())
+        # while the dealer's second card is face down only show the first card's value
+        if self.hole_hidden:
+            shown_hand = Hand()
+            shown_hand.add_card(self.dealer_hand.cards[0])
+        else:
+            shown_hand = self.dealer_hand
+        self.dealer_status["text"] = "Dealer total: " + str(shown_hand.get_value())
         self.player_status["text"] = "Player total: " + str(self.player_hand.get_value())
         if SHOW_DEBUG:
             print("\nDealer:", self.dealer_hand.get_hand(), "total:", self.dealer_hand.get_value())
             print("Player:", self.player_hand.get_hand(), "total:", self.player_hand.get_value())
 
+    # function used in updating the dealer / player / tie score UI
+    def update_score_labels(self):
+        self.dealer_score_label["text"] = "Dealer score: %d" % self.dealer_score
+        self.player_score_label["text"] = "Player score: %d" % self.player_score
+        self.tie_score_label["text"] = "Ties: %d" % self.tie_score
+
     # function used in updating the game status and score UI
     def update_game_status(self, color, text):
         self.game_status["fg"] = "%s" % color
         self.game_status["text"] = "%s" % text
-        self.dealer_score_label["text"] = "Dealer score: %s" % self.dealer_score
-        self.player_score_label["text"] = "Player score: %s" % self.player_score
-
-        # save dealer / player scores in scores.data file
-        scores_to_save = [self.dealer_score, self.player_score]
-        score_pickle = open(self.scores_file, "wb")
-        pickle.dump(scores_to_save, score_pickle)
-        score_pickle.close()
+        self.update_score_labels()
+        self.save_scores()
 
         if SHOW_DEBUG:
             print("\n%s" % text)
-            print("\nDealer:", self.dealer_score, "\nPlayer:", self.player_score)
+            print("\nDealer:", self.dealer_score, "\nPlayer:", self.player_score, "\nTies:", self.tie_score)
+
+    # end the game, giving a point to the winner ("player", "dealer", or "tie")
+    def finish(self, winner, text):
+        if winner == "player":
+            self.player_score += 1
+            color = "green"
+        elif winner == "dealer":
+            self.dealer_score += 1
+            color = "red"
+        else:
+            self.tie_score += 1
+            color = "black"
+
+        self.in_game = False
+        self.update_game_status(color, text)
 
     # if the game is active then update the dealers hand and compare scores
     def stand(self):
         if self.in_game:
+            # turn over the dealer's face down card
+            self.reveal_hole_card()
+
             # if the dealers value is under 17 then add a new card to their hand
             while self.dealer_hand.get_value() < 17:
-                self.dealer_hand.add_card(self.deck.deal_card())
-                # add one to the dealers card hit count, used in determining what card needs
-                # to be added to the screen
-                self.dealer_card_hit_count += 1
-
-                # draw the newly added cards to the UI canvas
-                self.dealer_image_list.append(
-                    PhotoImage(
-                        file="cards/" + str(self.dealer_hand.cards[self.dealer_card_hit_count].get_count()) + ".gif"))
-
-                self.dealer_label_list.append(
-                    Label(self.dealer_frame, image=self.dealer_image_list[self.dealer_card_hit_count]))
-                self.dealer_label_list[self.dealer_card_hit_count].pack(side=LEFT)
+                card = self.deck.deal_card()
+                self.dealer_hand.add_card(card)
+                self.show_card(self.dealer_frame, self.dealer_label_list, self.dealer_image_list, card)
 
             # update the score values
             self.update_values()
 
+            dealer_value = self.dealer_hand.get_value()
+            player_value = self.player_hand.get_value()
+
             # dealer busts if over 21
-            if self.dealer_hand.get_value() > 21:
-                self.player_score += 1
-                self.update_game_status("green", "Dealer busted, Player wins!")
-                self.in_game = False
+            if dealer_value > 21:
+                self.finish("player", "Dealer busted, Player wins!")
+            # if both dealer and player have an equal scores then it's a tie
+            elif dealer_value == player_value:
+                self.finish("tie", "Tie!")
+            # the dealer wins if they have a score closer to 21
+            elif dealer_value > player_value:
+                self.finish("dealer", "Dealer wins!")
+            # otherwise the player wins
             else:
-                # if both dealer and player have an equal scores then it's a tie
-                if self.dealer_hand.get_value() == self.player_hand.get_value():
-                    self.dealer_score += 1
-                    self.player_score += 1
-                    self.update_game_status("black", "Tie!")
-                    self.in_game = False
-                # the dealer wins if they have a score close to 21
-                elif self.dealer_hand.get_value() >= self.player_hand.get_value() or self.player_hand.get_value() > 21:
-                    self.dealer_score += 1
-                    self.update_game_status("red", "Dealer wins!")
-                # otherwise the player wins
-                else:
-                    self.player_score += 1
-                    self.update_game_status("green", "Player wins!")
+                self.finish("player", "Player wins!")
         # if the game is not in play then alert the player to deal a new deck to play
         else:
-            self.game_status["fg"] = "red"
-            self.game_status["text"] = "ERROR: Please deal a new deck to continue!"
-            if SHOW_DEBUG:
-                print("\nERROR: Please deal a new deck to continue!")
+            self.show_deal_error()
+
+    # tell the player to deal a new deck before hitting or standing
+    def show_deal_error(self):
+        self.game_status["fg"] = "red"
+        self.game_status["text"] = "ERROR: Please deal a new deck to continue!"
+        if SHOW_DEBUG:
+            print("\nERROR: Please deal a new deck to continue!")
 
 
 # start the game
-Blackjack().deal()
-
+Blackjack().window.mainloop()

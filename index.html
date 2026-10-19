@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <title>Blackjack</title>
+  </head>
+  <body>
+    <header class="topbar">
+      <h1 class="logo">Blackjack</h1>
+      <div class="record">
+        <dl class="stats" aria-label="All-time record">
+          <div>
+            <dt>Wins</dt>
+            <dd id="stat-wins">0</dd>
+          </div>
+          <div>
+            <dt>Losses</dt>
+            <dd id="stat-losses">0</dd>
+          </div>
+          <div>
+            <dt>Pushes</dt>
+            <dd id="stat-pushes">0</dd>
+          </div>
+        </dl>
+        <button id="reset-stats" class="reset-btn" title="Reset record">
+          Reset
+        </button>
+      </div>
+    </header>
+
+    <main class="table">
+      <section class="seat" aria-label="Dealer">
+        <div class="seat-label">
+          <span>Dealer</span>
+          <span class="score" id="dealer-score" hidden>0</span>
+        </div>
+        <div class="hand" id="dealer-hand"></div>
+      </section>
+
+      <div class="middle">
+        <div class="status" id="status" role="status" aria-live="polite"></div>
+        <button id="chip-deal" class="btn btn-primary btn-center">
+          Press to Deal
+        </button>
+      </div>
+
+      <section class="seat" aria-label="Player">
+        <div class="hand" id="player-hand"></div>
+        <div class="seat-label">
+          <span>You</span>
+          <span class="score" id="player-score" hidden>0</span>
+        </div>
+      </section>
+    </main>
+
+    <nav class="controls" aria-label="Game controls">
+      <button id="hit" class="btn" disabled>Hit <kbd>H</kbd></button>
+      <button id="deal" class="btn btn-primary">Deal <kbd>D</kbd></button>
+      <button id="stand" class="btn" disabled>Stand <kbd>S</kbd></button>
+    </nav>
+
+    <script src="main.js"></script>
+  </body>
+</html>
